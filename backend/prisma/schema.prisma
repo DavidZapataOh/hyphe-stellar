@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// === MERCADOS ===
+
+model Market {
+  id              Int           @id
+  question        String
+  numOutcomes     Int           @map("num_outcomes")
+  endTime         DateTime      @map("end_time")
+  status          MarketStatus  @default(OPEN)
+  winningOutcome  Int?          @map("winning_outcome")
+  totalCollateral BigInt        @default(0) @map("total_collateral")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  resolvedAt      DateTime?     @map("resolved_at")
+
+  // Metadata deportiva
+  sportType       String?       @map("sport_type")
+  homeTeam        String?       @map("home_team")
+  awayTeam        String?       @map("away_team")
+  matchDate       DateTime?     @map("match_date")
+  externalMatchId String?       @map("external_match_id")
+
+  priceHistory    PriceSnapshot[]
+  trades          Trade[]
+  signals         InfoFiSignal[]
+
+  @@map("markets")
+}
+
+enum MarketStatus {
+  OPEN
+  CLOSED
+  RESOLVED
+  DISPUTED
+}
+
+// === HISTORICO DE PRECIOS ===
+
+model PriceSnapshot {
+  id        Int      @id @default(autoincrement())
+  marketId  Int      @map("market_id")
+  market    Market   @relation(fields: [marketId], references: [id])
+  yesPrice  Float    @map("yes_price")
+  noPrice   Float    @map("no_price")
+  timestamp DateTime @default(now())
+
+  @@index([marketId, timestamp])
+  @@map("price_snapshots")
+}
+
+// === TRADES ===
+
+model Trade {
+  id        Int       @id @default(autoincrement())
+  marketId  Int       @map("market_id")
+  market    Market    @relation(fields: [marketId], references: [id])
+  user      String
+  outcome   Int
+  side      TradeSide
+  shares    BigInt
+  cost      BigInt
+  price     Float
+  txHash    String    @map("tx_hash")
+  timestamp DateTime  @default(now())
+
+  @@index([marketId, timestamp])
+  @@index([user])
+  @@map("trades")
+}
+
+enum TradeSide {
+  BUY
+  SELL
+  SPLIT
+  MERGE
+  REDEEM
+}
+
+// === VAULT ===
+
+model VaultSnapshot {
+  id               Int      @id @default(autoincrement())
+  tvl              BigInt
+  blendBalance     BigInt   @map("blend_balance")
+  bufferBalance    BigInt   @map("buffer_balance")
+  yieldGenerated   BigInt   @map("yield_generated")
+  yieldCumulative  BigInt   @map("yield_cumulative")
+  apyEstimate      Float    @map("apy_estimate")
+  timestamp        DateTime @default(now())
+
+  @@index([timestamp])
+  @@map("vault_snapshots")
+}
+
+// === ORACLE ===
+
+model OracleSubmission {
+  id              Int              @id @default(autoincrement())
+  marketId        Int              @map("market_id")
+  outcome         Int
+  source          String
+  rawData         Json             @map("raw_data")
+  txHash          String?          @map("tx_hash")
+  status          SubmissionStatus @default(PENDING)
+  submittedAt     DateTime         @default(now()) @map("submitted_at")
+  finalizedAt     DateTime?        @map("finalized_at")
+
+  @@index([marketId])
+  @@map("oracle_submissions")
+}
+
+enum SubmissionStatus {
+  PENDING
+  SUBMITTED
+  FINALIZED
+  DISPUTED
+  FAILED
+}
+
+// === INFOFI SIGNALS ===
+
+model InfoFiSignal {
+  id          Int      @id @default(autoincrement())
+  marketId    Int      @map("market_id")
+  market      Market   @relation(fields: [marketId], references: [id])
+  signalType  String   @map("signal_type")
+  entity      String
+  value       Float
+  description String
+  confidence  Float
+  timestamp   DateTime @default(now())
+
+  @@index([signalType])
+  @@index([marketId])
+  @@map("infofi_signals")
+}
