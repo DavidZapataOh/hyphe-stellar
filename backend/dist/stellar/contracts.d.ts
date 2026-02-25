@@ -1,0 +1,21 @@
+import { xdr } from "@stellar/stellar-sdk";
+export declare function getMarket(marketId: number): Promise<xdr.ScVal | null>;
+export declare function getMarketCount(): Promise<number>;
+export declare function getPrice(marketId: number, outcome: number): Promise<bigint>;
+export declare function getPrices(marketId: number): Promise<bigint[]>;
+export declare function quoteBuy(marketId: number, outcome: number, shares: bigint): Promise<bigint>;
+export declare function getAmmBalance(): Promise<bigint>;
+export declare function getVaultTvl(): Promise<bigint>;
+export declare function getVaultBalance(): Promise<bigint>;
+export declare function getBlendPosition(): Promise<{
+    principal: bigint;
+    bTokens: bigint;
+}>;
+export declare function getVaultTotalYield(): Promise<bigint>;
+export declare function getUserYield(address: string): Promise<bigint>;
+export declare function getUserDeposit(address: string): Promise<bigint>;
+export declare function accrueYield(): Promise<string>;
+export declare function submitOracleResult(marketId: number, outcome: number): Promise<string>;
+export declare function finalizeOracle(marketId: number): Promise<string>;
+export declare function getOutcomeBalance(marketId: number, outcome: number, user: string): Promise<bigint>;
+export declare function getOutcomeTotalSupply(marketId: number, outcome: number): Promise<bigint>;
