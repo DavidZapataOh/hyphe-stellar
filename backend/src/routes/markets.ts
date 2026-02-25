@@ -19,6 +19,7 @@ export async function marketRoutes(app: FastifyInstance): Promise<void> {
           : {}),
         ...(sport ? { sportType: sport } : {}),
       },
+      include: { _count: { select: { trades: true } } },
       orderBy:
         sort === "volume"
           ? { totalCollateral: "desc" }
@@ -27,13 +28,28 @@ export async function marketRoutes(app: FastifyInstance): Promise<void> {
             : { id: "desc" },
     });
 
-    // Enrich with cached prices
+    // Enrich with cached prices and map to frontend shape
     const enriched = await Promise.all(
       markets.map(async (m) => {
         const prices = await cacheHGetAll(`market:${m.id}:prices`);
+        const statusMap: Record<string, string> = {
+          OPEN: "Open",
+          CLOSED: "Closed",
+          RESOLVED: "Resolved",
+          DISPUTED: "Disputed",
+        };
         return {
-          ...m,
-          totalCollateral: m.totalCollateral.toString(),
+          id: m.id,
+          question: m.question,
+          category: m.sportType || "Football",
+          creator: "",
+          outcome_tokens: Array.from({ length: m.numOutcomes }, (_, i) => `outcome-${m.id}-${i}`),
+          end_time: Math.floor(m.endTime.getTime() / 1000),
+          status: statusMap[m.status] ?? "Open",
+          total_volume: m.totalCollateral.toString(),
+          liquidity: "0",
+          created_at: Math.floor(m.createdAt.getTime() / 1000),
+          trade_count: m._count.trades,
           yesPrice: parseFloat(prices?.yes || "0.5"),
           noPrice: parseFloat(prices?.no || "0.5"),
         };
@@ -48,6 +64,7 @@ export async function marketRoutes(app: FastifyInstance): Promise<void> {
     const { id } = request.params as { id: string };
     const market = await prisma.market.findUnique({
       where: { id: parseInt(id, 10) },
+      include: { _count: { select: { trades: true } } },
     });
 
     if (!market) {
@@ -55,10 +72,25 @@ export async function marketRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const prices = await cacheHGetAll(`market:${market.id}:prices`);
+    const statusMap: Record<string, string> = {
+      OPEN: "Open",
+      CLOSED: "Closed",
+      RESOLVED: "Resolved",
+      DISPUTED: "Disputed",
+    };
 
     return {
-      ...market,
-      totalCollateral: market.totalCollateral.toString(),
+      id: market.id,
+      question: market.question,
+      category: market.sportType || "Football",
+      creator: "",
+      outcome_tokens: Array.from({ length: market.numOutcomes }, (_, i) => `outcome-${market.id}-${i}`),
+      end_time: Math.floor(market.endTime.getTime() / 1000),
+      status: statusMap[market.status] ?? "Open",
+      total_volume: market.totalCollateral.toString(),
+      liquidity: "0",
+      created_at: Math.floor(market.createdAt.getTime() / 1000),
+      trade_count: market._count.trades,
       yesPrice: parseFloat(prices?.yes || "0.5"),
       noPrice: parseFloat(prices?.no || "0.5"),
     };
@@ -78,7 +110,11 @@ export async function marketRoutes(app: FastifyInstance): Promise<void> {
       orderBy: { timestamp: "asc" },
     });
 
-    return snapshots;
+    return snapshots.map((s) => ({
+      time: Math.floor(s.timestamp.getTime() / 1000),
+      yes: s.yesPrice,
+      no: s.noPrice,
+    }));
   });
 
   // GET /api/markets/:id/trades — trade history
@@ -93,9 +129,14 @@ export async function marketRoutes(app: FastifyInstance): Promise<void> {
     });
 
     return trades.map((t) => ({
-      ...t,
+      user: t.user,
+      marketId: t.marketId,
+      outcome: t.outcome,
+      side: t.side,
       shares: t.shares.toString(),
       cost: t.cost.toString(),
+      timestamp: Math.floor(t.timestamp.getTime() / 1000),
+      txHash: t.txHash,
     }));
   });
 

@@ -12,39 +12,46 @@ async function syncMarkets(): Promise<void> {
   const count = await getMarketCount();
   if (count === 0) return;
 
-  for (let i = 0; i < count; i++) {
+  for (let i = 1; i <= count; i++) {
     try {
       const raw = await getMarket(i);
       if (!raw) continue;
 
       // Parse the ScVal struct into a native object
       const market = scValToNative(raw) as {
+        id: number | bigint;
         question: string;
         num_outcomes: number;
         end_time: number | bigint;
-        resolved: boolean;
-        winning_outcome: number | null;
+        status: string; // Soroban enum: "Open" | "Closed" | "Resolved" | "Disputed"
+        winning_outcome: number;
         total_collateral: bigint;
         oracle_id: string;
       };
 
       const endTime = new Date(Number(market.end_time) * 1000);
-      const now = new Date();
 
-      // Determine status
-      let status: "OPEN" | "CLOSED" | "RESOLVED" = "OPEN";
-      if (market.resolved) {
-        status = "RESOLVED";
-      } else if (now >= endTime) {
-        status = "CLOSED";
-      }
+      // Map on-chain status enum to DB status
+      const statusMap: Record<string, "OPEN" | "CLOSED" | "RESOLVED" | "DISPUTED"> = {
+        Open: "OPEN",
+        Closed: "CLOSED",
+        Resolved: "RESOLVED",
+        Disputed: "DISPUTED",
+      };
+      const status = statusMap[market.status] ?? "OPEN";
 
+      // u32::MAX (4294967295) is the sentinel for "no winner yet"
+      const NO_WINNER = 4294967295;
+      const winningOutcome = market.winning_outcome === NO_WINNER ? null : market.winning_outcome;
+
+      // NOTE: totalCollateral is NOT synced from the factory because the
+      // factory doesn't know about AMM trades. The indexer tracks collateral
+      // by incrementing on each trade event. Only sync status & resolution.
       await prisma.market.upsert({
         where: { id: i },
         update: {
           status,
-          winningOutcome: market.winning_outcome ?? null,
-          totalCollateral: BigInt(market.total_collateral.toString()),
+          winningOutcome,
         },
         create: {
           id: i,
@@ -52,8 +59,8 @@ async function syncMarkets(): Promise<void> {
           numOutcomes: market.num_outcomes,
           endTime,
           status,
-          winningOutcome: market.winning_outcome ?? null,
-          totalCollateral: BigInt(market.total_collateral.toString()),
+          winningOutcome,
+          totalCollateral: 0n,
         },
       });
     } catch (error) {

@@ -10,12 +10,14 @@ export function getRedis(): Redis | null {
   try {
     redis = new Redis(config.REDIS_URL, {
       maxRetriesPerRequest: 3,
-      lazyConnect: true,
+      retryStrategy(times) {
+        if (times > 10) return null; // stop reconnecting after 10 attempts
+        return Math.min(times * 500, 5000);
+      },
     });
 
     redis.on("error", (err: Error) => {
       logger.warn({ err: err.message }, "Redis connection error — running without cache");
-      redis = null;
     });
 
     return redis;

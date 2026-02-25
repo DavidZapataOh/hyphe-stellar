@@ -4,8 +4,8 @@ import { logger } from "../utils/logger.js";
 import { getPrices } from "../stellar/contracts.js";
 import { cacheHSet } from "../cache/redis.js";
 
-// LMSR prices are returned as fixed-point with 7 decimals (Stellar standard)
-const PRICE_SCALE = 1e7;
+// LMSR prices are returned as fixed-point with 18 decimals (SCALE = 10^18)
+const PRICE_SCALE = 1e18;
 
 /**
  * Snapshot prices for all open markets from the AMM contract.

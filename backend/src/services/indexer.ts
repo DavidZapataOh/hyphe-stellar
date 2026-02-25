@@ -48,8 +48,8 @@ async function processEvent(
       // Refresh on-chain prices and push to cache + websocket
       const prices = await getPrices(d.marketId);
       if (prices.length >= 2) {
-        const yesPrice = Number(prices[0]) / 1e7;
-        const noPrice = Number(prices[1]) / 1e7;
+        const yesPrice = Number(prices[0]) / 1e18;
+        const noPrice = Number(prices[1]) / 1e18;
 
         await cacheHSet(`market:${d.marketId}:prices`, {
           yes: yesPrice.toString(),
