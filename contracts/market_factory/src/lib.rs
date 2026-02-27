@@ -23,8 +23,10 @@ pub enum MarketStatus {
 pub struct MarketInfo {
     pub id: u64,
     pub question: String,
+    pub category: String,
     pub num_outcomes: u32,
     pub end_time: u64,
+    pub created_at: u64,
     pub oracle_id: Address,
     pub status: MarketStatus,
     pub total_collateral: i128,
@@ -106,6 +108,7 @@ impl MarketFactory {
         env: Env,
         admin: Address,
         question: String,
+        category: String,
         num_outcomes: u32,
         end_time: u64,
         oracle_id: Address,
@@ -119,8 +122,10 @@ impl MarketFactory {
         let market = MarketInfo {
             id: market_id,
             question,
+            category,
             num_outcomes,
             end_time,
+            created_at: env.ledger().timestamp(),
             oracle_id,
             status: MarketStatus::Open,
             total_collateral: 0,
@@ -530,6 +535,7 @@ mod test {
         let market_id = client.create_market(
             admin,
             &String::from_str(env, "Will Brazil win?"),
+            &String::from_str(env, "World Cup 2026"),
             &2,
             &2000,
             &oracle,
@@ -692,11 +698,13 @@ mod test {
         let m1 = client.create_market(
             &admin,
             &String::from_str(&env, "Will Brazil win?"),
+            &String::from_str(&env, "World Cup 2026"),
             &2, &2000, &oracle,
         );
         let m2 = client.create_market(
             &admin,
             &String::from_str(&env, "Will France win?"),
+            &String::from_str(&env, "World Cup 2026"),
             &2, &3000, &oracle,
         );
 

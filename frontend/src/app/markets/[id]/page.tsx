@@ -3,22 +3,16 @@
 import { use, useEffect } from "react";
 import {
   ArrowLeft,
-  Clock,
   BarChart3,
   Activity,
-  ShieldCheck,
   Database,
   Gavel,
-  ChevronRight,
-  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MarketStatusBadge } from "@/components/markets/MarketStatus";
 import { OddsChart } from "@/components/markets/OddsChart";
 import { TradingPanel } from "@/components/markets/TradingPanel";
 import { TradeHistory } from "@/components/markets/TradeHistory";
-import { Countdown } from "@/components/shared/Countdown";
 import { Footer } from "@/components/layout/Footer";
 import {
   useMarket,
@@ -27,7 +21,7 @@ import {
 } from "@/hooks/useMarket";
 import { useOddsStream } from "@/hooks/useOddsStream";
 import { useMarketsStore } from "@/stores/markets";
-import { formatCompact, formatPercent } from "@/lib/utils/format";
+import { formatCompact } from "@/lib/utils/format";
 import { USDC_DECIMALS } from "@/lib/utils/constants";
 
 export default function MarketDetailPage({
@@ -89,15 +83,14 @@ export default function MarketDetailPage({
 
   const volume = Number(market.total_volume) / 10 ** USDC_DECIMALS;
   const yesPct = Math.round(odds.yes * 100);
-  const change = ((odds.yes - 0.5) * 20).toFixed(1);
-  const isPositive = Number(change) >= 0;
+  const oracleAddr = market.creator ?? "";
 
   return (
     <>
       <main className="mx-auto max-w-[1400px] w-full px-8 py-10">
         {/* Breadcrumbs */}
         <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-primary">
-          <TrendingUp className="h-3.5 w-3.5" />
+          <BarChart3 className="h-3.5 w-3.5" />
           {market.category} &bull; Active Market
         </div>
 
@@ -112,18 +105,9 @@ export default function MarketDetailPage({
             <span className="text-base font-medium text-muted-foreground">
               Current Probability
             </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-bold tracking-tighter">
-                {yesPct}%
-              </span>
-              <span
-                className={`flex items-center gap-0.5 text-xl font-bold ${isPositive ? "text-yes" : "text-no"}`}
-              >
-                {isPositive ? "+" : ""}
-                {change}%
-                <TrendingUp className="h-4 w-4" />
-              </span>
-            </div>
+            <span className="text-5xl font-bold tracking-tighter">
+              {yesPct}%
+            </span>
           </div>
           <div className="mx-2 h-10 w-px bg-border" />
           <div className="flex flex-col">
@@ -174,10 +158,12 @@ export default function MarketDetailPage({
                   <h3 className="font-bold">Resolution Rules</h3>
                 </div>
                 <p className="text-base leading-relaxed text-muted-foreground">
-                  Market resolves YES if the event occurs before the end date.
-                  Resolution is determined by the designated oracle source and
-                  verified through the Hyphe protocol. Official filings and
-                  verified data sources serve as primary resolution sources.
+                  Market resolves YES if the event occurs before{" "}
+                  <span className="font-medium text-foreground">
+                    {new Date(market.end_time * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                  </span>
+                  . Resolution is determined by the designated on-chain oracle
+                  and verified through the Hyphe protocol.
                 </p>
               </div>
 
@@ -189,15 +175,14 @@ export default function MarketDetailPage({
                   <h3 className="font-bold">Oracle Source</h3>
                 </div>
                 <p className="mb-4 text-base leading-relaxed text-muted-foreground">
-                  Primary: Verified on-chain oracle data feeds. Secondary: Major
-                  news outlets confirming the event status.
+                  This market is resolved by the designated oracle address registered on-chain.
                 </p>
                 <div className="flex items-center justify-between border-t border-border pt-4 text-sm">
                   <span className="font-bold uppercase tracking-wider text-muted-foreground">
-                    Resolution Method
+                    Oracle Address
                   </span>
-                  <span className="rounded bg-primary/10 px-2 py-1 font-mono text-primary">
-                    DECENTRALIZED_ORACLE_V2
+                  <span className="rounded bg-primary/10 px-2 py-1 font-mono text-xs text-primary" title={oracleAddr}>
+                    {oracleAddr ? `${oracleAddr.slice(0, 6)}...${oracleAddr.slice(-4)}` : "N/A"}
                   </span>
                 </div>
               </div>

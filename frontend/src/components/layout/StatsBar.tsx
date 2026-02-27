@@ -4,14 +4,21 @@ import { AnimatedNumber } from "@/components/shared/AnimatedNumber";
 import { formatCompact } from "@/lib/utils/format";
 import { USDC_DECIMALS } from "@/lib/utils/constants";
 import type { VaultInfo } from "@/lib/stellar/types";
+import type { PlatformStats } from "@/hooks/useStats";
 
 interface StatsBarProps {
   vaultInfo?: VaultInfo;
   marketsCount: number;
+  /** Total volume computed from chain markets (USDC float) */
+  totalVolume?: number;
+  /** Backend keeper stats (indexed from on-chain events) */
+  stats?: PlatformStats;
 }
 
-export function StatsBar({ vaultInfo, marketsCount }: StatsBarProps) {
+export function StatsBar({ vaultInfo, marketsCount, totalVolume, stats }: StatsBarProps) {
   const tvl = vaultInfo ? Number(vaultInfo.tvl) / 10 ** USDC_DECIMALS : 0;
+  const volume24h = stats ? Number(stats.volume24h) / 10 ** USDC_DECIMALS : 0;
+  const totalTrades = stats?.totalTrades ?? 0;
 
   return (
     <div className="border-b border-border bg-stats-bar">
@@ -28,30 +35,48 @@ export function StatsBar({ vaultInfo, marketsCount }: StatsBarProps) {
                 format={(n) => formatCompact(n)}
                 className="text-xl font-bold tabular-nums"
               />
-              {tvl > 0 && (
-                <span className="text-sm font-semibold text-yes">+12.4%</span>
-              )}
             </div>
           </div>
 
           <div className="h-8 w-px bg-border" />
 
-          {/* 24h Volume */}
-          <div className="flex flex-col">
-            <span className="mb-1 text-xs font-bold uppercase leading-none tracking-widest text-muted-foreground">
-              24h Volume
-            </span>
-            <div className="flex items-center gap-2">
-              <AnimatedNumber
-                value={tvl * 0.15}
-                format={(n) => formatCompact(n)}
-                className="text-xl font-bold tabular-nums"
-              />
-              <span className="text-sm font-semibold text-yes">+5.8%</span>
-            </div>
-          </div>
+          {/* Total Volume — from chain markets */}
+          {totalVolume != null && totalVolume > 0 && (
+            <>
+              <div className="flex flex-col">
+                <span className="mb-1 text-xs font-bold uppercase leading-none tracking-widest text-muted-foreground">
+                  Total Volume
+                </span>
+                <div className="flex items-center gap-2">
+                  <AnimatedNumber
+                    value={totalVolume}
+                    format={(n) => formatCompact(n)}
+                    className="text-xl font-bold tabular-nums"
+                  />
+                </div>
+              </div>
+              <div className="h-8 w-px bg-border" />
+            </>
+          )}
 
-          <div className="h-8 w-px bg-border" />
+          {/* 24h Volume — from backend indexed trades */}
+          {volume24h > 0 && (
+            <>
+              <div className="flex flex-col">
+                <span className="mb-1 text-xs font-bold uppercase leading-none tracking-widest text-muted-foreground">
+                  24h Volume
+                </span>
+                <div className="flex items-center gap-2">
+                  <AnimatedNumber
+                    value={volume24h}
+                    format={(n) => formatCompact(n)}
+                    className="text-xl font-bold tabular-nums"
+                  />
+                </div>
+              </div>
+              <div className="h-8 w-px bg-border" />
+            </>
+          )}
 
           {/* Active Markets */}
           <div className="flex flex-col">
@@ -66,6 +91,25 @@ export function StatsBar({ vaultInfo, marketsCount }: StatsBarProps) {
               />
             </div>
           </div>
+
+          {/* Total Trades — from backend indexed events */}
+          {totalTrades > 0 && (
+            <>
+              <div className="h-8 w-px bg-border" />
+              <div className="flex flex-col">
+                <span className="mb-1 text-xs font-bold uppercase leading-none tracking-widest text-muted-foreground">
+                  Total Trades
+                </span>
+                <div className="flex items-center gap-2">
+                  <AnimatedNumber
+                    value={totalTrades}
+                    format={(n) => Math.round(n).toString()}
+                    className="text-xl font-bold tabular-nums"
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
       </div>

@@ -1,16 +1,18 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchMarket, fetchMarketHistory, fetchRecentTrades } from "@/lib/api/markets";
+import { fetchMarketHistory, fetchRecentTrades } from "@/lib/api/markets";
 
-export function useMarket(marketId: number) {
-  return useQuery({
-    queryKey: ["market", marketId],
-    queryFn: () => fetchMarket(marketId),
-    refetchInterval: 10_000,
-  });
-}
+/**
+ * Chain-first single market read.
+ * Reads directly from smart contracts — no backend DB dependency.
+ */
+export { useChainMarket as useMarket } from "./useChainMarkets";
 
+/**
+ * Historical price data — still from backend API.
+ * This is time-series data that doesn't exist on-chain.
+ */
 export function useMarketHistory(marketId: number) {
   return useQuery({
     queryKey: ["market-history", marketId],
@@ -19,6 +21,10 @@ export function useMarketHistory(marketId: number) {
   });
 }
 
+/**
+ * Recent trades — still from backend API.
+ * Trade events expire from Soroban RPC, so the backend indexes them.
+ */
 export function useRecentTrades(marketId: number) {
   return useQuery({
     queryKey: ["recent-trades", marketId],

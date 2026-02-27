@@ -14,7 +14,7 @@ export interface Market {
   noPrice: number;
 }
 
-export type MarketStatus = "Open" | "Closed" | "Resolved";
+export type MarketStatus = "Open" | "Closed" | "Resolved" | "Disputed";
 
 export interface MarketOdds {
   yes: number;
@@ -76,4 +76,31 @@ export interface PriceHistoryPoint {
   time: number;
   yes: number;
   no: number;
+}
+
+/**
+ * Raw market data as returned by the market_factory contract's `get_market()`.
+ * Field names match the Soroban struct (snake_case).
+ */
+export interface ChainMarketInfo {
+  id: number | bigint;
+  question: string;
+  category: string;
+  num_outcomes: number;
+  end_time: number | bigint;
+  created_at: number | bigint;
+  status: { tag: string; values?: unknown[] } | string;
+  total_collateral: bigint;
+  winning_outcome: number;
+  oracle_id: string;
+}
+
+/**
+ * Raw LMSR state from the AMM contract's `get_state_view()`.
+ */
+export interface ChainLmsrState {
+  b: bigint;
+  quantities: bigint[];
+  trade_count: number | bigint;
+  cumulative_volume: bigint;
 }

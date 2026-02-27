@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ChevronDown,
   BarChart3,
@@ -11,8 +12,8 @@ import {
   Wallet,
   Loader2,
   ExternalLink,
+  Globe,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { MarketGrid } from "@/components/markets/MarketGrid";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { StatsBar } from "@/components/layout/StatsBar";
@@ -26,8 +27,10 @@ import { useTradeSidebarStore } from "@/stores/tradeSidebar";
 import { useVaultInfo } from "@/hooks/useVault";
 import { useWallet } from "@/hooks/useWallet";
 import { useTrade } from "@/hooks/useTrade";
-import { formatCompact, formatUsdc } from "@/lib/utils/format";
-import { fetchAllUserPositions } from "@/lib/api/history";
+import { usePositions } from "@/hooks/usePositions";
+import { useChainQuote } from "@/hooks/useChainQuote";
+import { useStats } from "@/hooks/useStats";
+import { formatCompact } from "@/lib/utils/format";
 import { USDC_DECIMALS } from "@/lib/utils/constants";
 import Decimal from "decimal.js";
 import { detectCountries } from "@/lib/utils/countryMarkets";
@@ -141,7 +144,7 @@ function FeaturedMarketHero({
           </span>
           <span className="flex items-center gap-2 text-base font-semibold text-muted-foreground">
             <Users className="h-4 w-4" />
-            {formatCompact(market.trade_count ?? 0)} Trades
+            {market.trade_count ?? 0} Trades
           </span>
         </div>
       </div>
@@ -167,13 +170,8 @@ function HomeSidebar({
   const [amount, setAmount] = useState("");
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
 
-  // Fetch user positions when wallet is connected
-  const { data: positions } = useQuery({
-    queryKey: ["user-positions", address],
-    queryFn: () => fetchAllUserPositions(address!),
-    enabled: connected && !!address,
-    staleTime: 30_000,
-  });
+  // Fetch user positions directly from chain (no backend dependency)
+  const { data: chainPositions } = usePositions();
 
   // Find selected market data
   const selectedMarket = selectedMarketId
@@ -188,10 +186,22 @@ function HomeSidebar({
       : selectedOdds.no
     : 0.5;
   const parsedAmount = parseFloat(amount) || 0;
-  const estimatedReturn =
-    parsedAmount > 0 ? parsedAmount / currentOdds - parsedAmount : 0;
-  const returnPct =
-    parsedAmount > 0 ? ((1 / currentOdds - 1) * 100).toFixed(0) : "0";
+
+  // Convert USDC amount → shares for chain quote
+  const shares = useMemo(() => {
+    if (parsedAmount <= 0 || currentOdds <= 0) return 0n;
+    return BigInt(
+      new Decimal(amount || "0").div(Math.max(currentOdds, 0.01)).mul("1000000000000000000").toFixed(0)
+    );
+  }, [amount, parsedAmount, currentOdds]);
+
+  // Get real quote from AMM contract
+  const { data: sidebarQuote } = useChainQuote(
+    selectedMarketId ?? 0,
+    outcome,
+    shares,
+    !!selectedMarketId && parsedAmount > 0,
+  );
 
   function handlePresetSelect(preset: number) {
     setSelectedPreset(preset);
@@ -322,20 +332,24 @@ function HomeSidebar({
             />
           </div>
 
-          {/* Summary */}
+          {/* Summary — real data from chain quote */}
           <div className="space-y-2.5 rounded-xl border border-border/50 bg-background/50 p-4">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Position Size</span>
+              <span className="text-muted-foreground">Estimated Cost</span>
               <span className="font-medium">
-                ${parsedAmount > 0 ? parsedAmount.toFixed(2) : "0.00"}
+                ${sidebarQuote ? sidebarQuote.costUsdc.toFixed(2) : parsedAmount > 0 ? "..." : "0.00"}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Potential Return</span>
               <span className="font-bold text-yes">
-                ${estimatedReturn > 0 ? estimatedReturn.toFixed(2) : "0.00"}{" "}
-                {parsedAmount > 0 && (
-                  <span className="text-yes/70">(+{returnPct}%)</span>
+                {sidebarQuote && sidebarQuote.returnUsdc > 0 ? (
+                  <>
+                    ${sidebarQuote.returnUsdc.toFixed(2)}{" "}
+                    <span className="text-yes/70">(+{sidebarQuote.returnPct.toFixed(0)}%)</span>
+                  </>
+                ) : (
+                  "$0.00"
                 )}
               </span>
             </div>
@@ -408,7 +422,7 @@ function HomeSidebar({
               Connect Wallet
             </button>
           </div>
-        ) : !positions || positions.length === 0 ? (
+        ) : !chainPositions || chainPositions.length === 0 ? (
           /* Connected but no positions */
           <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-6 text-center">
             <p className="text-sm font-medium text-muted-foreground">
@@ -419,40 +433,35 @@ function HomeSidebar({
             </p>
           </div>
         ) : (
-          /* Positions list */
+          /* Positions list — from chain */
           <div className="flex flex-col gap-3">
-            {positions.map((pos) => {
+            {chainPositions.map((pos) => {
+              const posMarket = markets.find((m) => m.id === pos.marketId);
               const posOdds = oddsMap[pos.marketId];
+              const sharesDisplay = (Number(pos.shares) / 1e18).toFixed(2);
               return (
                 <Link
-                  key={pos.marketId}
+                  key={`${pos.marketId}-${pos.outcome}`}
                   href={`/markets/${pos.marketId}`}
                   className="rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/50"
                 >
-                  <p className="mb-2 text-sm font-bold leading-snug line-clamp-2 text-foreground/90">
-                    {pos.question}
-                  </p>
-                  <div className="flex flex-col gap-1.5">
-                    {pos.outcomes
-                      .filter((o) => BigInt(o.balance) > 0n)
-                      .map((o) => (
-                        <div
-                          key={o.outcome}
-                          className="flex items-center justify-between text-xs"
-                        >
-                          <span
-                            className={cn(
-                              "font-bold",
-                              o.outcome === 0 ? "text-yes" : "text-no",
-                            )}
-                          >
-                            {o.outcome === 0 ? "YES" : "NO"}
-                          </span>
-                          <span className="font-mono text-muted-foreground">
-                            {formatUsdc(BigInt(o.balance))} USDC
-                          </span>
-                        </div>
-                      ))}
+                  {posMarket && (
+                    <p className="mb-2 text-sm font-bold leading-snug line-clamp-2 text-foreground/90">
+                      {posMarket.question}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between text-xs">
+                    <span
+                      className={cn(
+                        "font-bold",
+                        pos.outcome === 0 ? "text-yes" : "text-no",
+                      )}
+                    >
+                      {pos.outcome === 0 ? "YES" : "NO"}
+                    </span>
+                    <span className="font-mono text-muted-foreground">
+                      {sharesDisplay} shares &bull; ${pos.valueUsdc.toFixed(2)}
+                    </span>
                   </div>
                   {posOdds && (
                     <div className="mt-2 flex h-1.5 w-full overflow-hidden rounded-full">
@@ -479,17 +488,45 @@ function HomeSidebar({
 type SortTab = "trending" | "newest" | "ending";
 
 export default function Home() {
+  const searchParams = useSearchParams();
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
   const [sortTab, setSortTab] = useState<SortTab>("trending");
+
+  // Sync search from URL query param (from Navbar search)
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) setSearch(q);
+  }, [searchParams]);
   const [visibleCount, setVisibleCount] = useState(12);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [showMap, setShowMap] = useState(false);
 
   const { data: markets, isLoading } = useMarkets("Open");
   const { data: vaultInfo } = useVaultInfo();
+  const { data: platformStats } = useStats();
   const oddsMap = useMarketsStore((s) => s.oddsMap);
   const selectMarket = useTradeSidebarStore((s) => s.selectMarket);
+
+  // Compute total volume from chain markets
+  const totalVolume = useMemo(() => {
+    if (!markets || markets.length === 0) return 0;
+    return markets.reduce(
+      (sum, m) => sum + Number(m.total_volume) / 10 ** USDC_DECIMALS,
+      0,
+    );
+  }, [markets]);
+
+  // Extract unique categories from chain markets
+  const chainCategories = useMemo(() => {
+    if (!markets) return [];
+    const cats = new Set<string>();
+    for (const m of markets) {
+      if (m.category) cats.add(m.category);
+    }
+    return Array.from(cats).sort();
+  }, [markets]);
 
   const featuredMarket = useMemo(() => {
     if (!markets || markets.length === 0) return null;
@@ -573,7 +610,7 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Stats Bar — full width */}
-      <StatsBar vaultInfo={vaultInfo} marketsCount={markets?.length ?? 0} />
+      <StatsBar vaultInfo={vaultInfo} marketsCount={markets?.length ?? 0} totalVolume={totalVolume} stats={platformStats} />
 
       {/* 3-column layout */}
       <div className="flex flex-1">
@@ -584,6 +621,7 @@ export default function Home() {
           onCategoryChange={handleCategoryChange}
           activeFilters={activeFilters}
           onFilterToggle={handleFilterToggle}
+          chainCategories={chainCategories}
         />
 
         {/* Main content */}
@@ -604,15 +642,6 @@ export default function Home() {
             </section>
           )}
 
-          {/* World Map */}
-          {!isLoading && (
-            <WorldMap
-              countryMatches={countryMatches}
-              selectedCountry={selectedCountry}
-              onSelectCountry={setSelectedCountry}
-            />
-          )}
-
           {/* Live Markets Header + Tabs */}
           <div className="mb-6 flex flex-wrap items-center justify-between gap-y-3">
             <div className="flex flex-wrap items-center gap-4">
@@ -630,10 +659,13 @@ export default function Home() {
                 {(["trending", "newest", "ending"] as const).map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => setSortTab(tab)}
+                    onClick={() => {
+                      setSortTab(tab);
+                      setShowMap(false);
+                    }}
                     className={cn(
                       "rounded-md px-3 py-1.5 text-sm font-bold transition-colors",
-                      sortTab === tab
+                      sortTab === tab && !showMap
                         ? "bg-primary text-white shadow-sm"
                         : "text-muted-foreground hover:text-foreground",
                     )}
@@ -645,6 +677,18 @@ export default function Home() {
                         : "Ending"}
                   </button>
                 ))}
+                <button
+                  onClick={() => setShowMap(true)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-bold transition-colors",
+                    showMap
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Globe className="h-3.5 w-3.5" />
+                  Map
+                </button>
               </div>
             </div>
 
@@ -657,30 +701,43 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Market Grid */}
-          <MarketGrid
-            markets={visibleMarkets}
-            oddsMap={oddsMap}
-            loading={isLoading}
-            onClearFilters={() => {
-              setCategory("all");
-              setSearch("");
-              setSelectedCountry(null);
-            }}
-            onSelectOutcome={handleSelectOutcome}
-          />
+          {showMap ? (
+            <WorldMap
+              countryMatches={countryMatches}
+              selectedCountry={selectedCountry}
+              onSelectCountry={(code) => {
+                setSelectedCountry(code);
+                if (code) setShowMap(false);
+              }}
+            />
+          ) : (
+            <>
+              {/* Market Grid */}
+              <MarketGrid
+                markets={visibleMarkets}
+                oddsMap={oddsMap}
+                loading={isLoading}
+                onClearFilters={() => {
+                  setCategory("all");
+                  setSearch("");
+                  setSelectedCountry(null);
+                }}
+                onSelectOutcome={handleSelectOutcome}
+              />
 
-          {/* Load More */}
-          {hasMore && (
-            <div className="mt-10 text-center">
-              <button
-                onClick={() => setVisibleCount((c) => c + 12)}
-                className="group inline-flex items-center gap-1.5 rounded-full border border-border px-6 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:border-foreground/20 hover:text-foreground"
-              >
-                Load More
-                <ChevronDown className="h-3 w-3 transition-transform group-hover:translate-y-0.5" />
-              </button>
-            </div>
+              {/* Load More */}
+              {hasMore && (
+                <div className="mt-10 text-center">
+                  <button
+                    onClick={() => setVisibleCount((c) => c + 12)}
+                    className="group inline-flex items-center gap-1.5 rounded-full border border-border px-6 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:border-foreground/20 hover:text-foreground"
+                  >
+                    Load More
+                    <ChevronDown className="h-3 w-3 transition-transform group-hover:translate-y-0.5" />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </main>
 

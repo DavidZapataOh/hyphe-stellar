@@ -6,6 +6,8 @@ interface MarketsStore {
   oddsMap: Record<number, MarketOdds>;
   setMarkets: (markets: Market[]) => void;
   updateOdds: (marketId: number, odds: MarketOdds) => void;
+  /** Seed odds from chain read — only sets if no odds exist yet (won't overwrite WS updates) */
+  seedOddsFromChain: (marketId: number, yes: number, no: number) => void;
 }
 
 export const useMarketsStore = create<MarketsStore>((set) => ({
@@ -17,5 +19,13 @@ export const useMarketsStore = create<MarketsStore>((set) => ({
   updateOdds: (marketId, odds) =>
     set((state) => ({
       oddsMap: { ...state.oddsMap, [marketId]: odds },
+    })),
+
+  seedOddsFromChain: (marketId, yes, no) =>
+    set((state) => ({
+      oddsMap: {
+        ...state.oddsMap,
+        [marketId]: state.oddsMap[marketId] ?? { yes, no },
+      },
     })),
 }));

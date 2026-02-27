@@ -5,7 +5,12 @@ import { quoteBuy, getOutcomeBalance, getOutcomeTotalSupply } from "../stellar/c
 
 export async function marketRoutes(app: FastifyInstance): Promise<void> {
   // GET /api/markets — list all markets with current prices
-  app.get("/api/markets", async (request) => {
+  // DEPRECATED: Frontend now reads current state directly from chain.
+  // This endpoint is kept for backward compatibility and historical enrichment.
+  app.get("/api/markets", async (request, reply) => {
+    reply.header("Deprecation", "true");
+    reply.header("Sunset", "2026-06-30");
+    reply.header("Link", '</api/stats/summary>; rel="successor-version"');
     const { status, sport, sort } = request.query as {
       status?: string;
       sport?: string;
@@ -60,7 +65,11 @@ export async function marketRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // GET /api/markets/:id — single market detail
+  // DEPRECATED: Frontend now reads current state directly from chain.
   app.get("/api/markets/:id", async (request, reply) => {
+    reply.header("Deprecation", "true");
+    reply.header("Sunset", "2026-06-30");
+
     const { id } = request.params as { id: string };
     const market = await prisma.market.findUnique({
       where: { id: parseInt(id, 10) },
@@ -99,7 +108,11 @@ export async function marketRoutes(app: FastifyInstance): Promise<void> {
   // GET /api/markets/:id/history — price history for charts
   app.get("/api/markets/:id/history", async (request) => {
     const { id } = request.params as { id: string };
-    const { from, to } = request.query as { from?: string; to?: string };
+    const { from, to, limit } = request.query as {
+      from?: string;
+      to?: string;
+      limit?: string;
+    };
 
     const snapshots = await prisma.priceSnapshot.findMany({
       where: {
@@ -108,6 +121,7 @@ export async function marketRoutes(app: FastifyInstance): Promise<void> {
         ...(to ? { timestamp: { lte: new Date(to) } } : {}),
       },
       orderBy: { timestamp: "asc" },
+      ...(limit ? { take: parseInt(limit, 10) } : {}),
     });
 
     return snapshots.map((s) => ({

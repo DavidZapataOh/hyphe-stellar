@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "trades" ALTER COLUMN "shares" SET DATA TYPE DECIMAL(65,30);

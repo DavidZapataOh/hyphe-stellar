@@ -402,6 +402,14 @@
                   },
                   {
                     "key": {
+                      "symbol": "cumulative_volume"
+                    },
+                    "val": {
+                      "i128": "407997869"
+                    }
+                  },
+                  {
+                    "key": {
                       "symbol": "quantities"
                     },
                     "val": {
@@ -413,6 +421,14 @@
                           "i128": "0"
                         }
                       ]
+                    }
+                  },
+                  {
+                    "key": {
+                      "symbol": "trade_count"
+                    },
+                    "val": {
+                      "u64": "2"
                     }
                   }
                 ]

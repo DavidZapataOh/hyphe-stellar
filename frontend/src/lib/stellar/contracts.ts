@@ -1,7 +1,9 @@
-import { nativeToScVal, Address } from "@stellar/stellar-sdk";
+import { nativeToScVal, Address, scValToNative } from "@stellar/stellar-sdk";
 import { readContract } from "./client";
 import { executeContractCall, type TxResult } from "./transaction";
 import { CONTRACTS } from "@/lib/utils/constants";
+import { parseChainMarket, parsePricesVec, i128ToBigInt } from "./parsers";
+import type { ChainMarketInfo } from "./types";
 
 export const MarketContract = {
   async marketCount() {
@@ -12,6 +14,18 @@ export const MarketContract = {
     return readContract(CONTRACTS.factory, "get_market", [
       nativeToScVal(marketId, { type: "u64" }),
     ]);
+  },
+
+  async getMarketParsed(marketId: number): Promise<ChainMarketInfo> {
+    const raw = await readContract(CONTRACTS.factory, "get_market", [
+      nativeToScVal(marketId, { type: "u64" }),
+    ]);
+    return parseChainMarket(raw);
+  },
+
+  async marketCountParsed(): Promise<number> {
+    const raw = await readContract(CONTRACTS.factory, "market_count", []);
+    return Number(raw.u64());
   },
 
   async split(
@@ -57,12 +71,51 @@ export const AmmContract = {
     ]);
   },
 
+  async getPrices(marketId: number): Promise<bigint[]> {
+    const raw = await readContract(CONTRACTS.amm, "get_prices", [
+      nativeToScVal(marketId, { type: "u64" }),
+    ]);
+    return parsePricesVec(raw);
+  },
+
+  async getTradeCount(marketId: number): Promise<number> {
+    const raw = await readContract(CONTRACTS.amm, "get_trade_count", [
+      nativeToScVal(marketId, { type: "u64" }),
+    ]);
+    return Number(raw.u64());
+  },
+
+  async getVolume(marketId: number): Promise<bigint> {
+    const raw = await readContract(CONTRACTS.amm, "get_volume", [
+      nativeToScVal(marketId, { type: "u64" }),
+    ]);
+    return i128ToBigInt(raw);
+  },
+
+  async quoteBuyParsed(marketId: number, outcome: number, shares: bigint): Promise<bigint> {
+    const raw = await readContract(CONTRACTS.amm, "quote_buy", [
+      nativeToScVal(marketId, { type: "u64" }),
+      nativeToScVal(outcome, { type: "u32" }),
+      nativeToScVal(shares, { type: "i128" }),
+    ]);
+    return i128ToBigInt(raw);
+  },
+
   async quoteBuy(marketId: number, outcome: number, shares: bigint) {
     return readContract(CONTRACTS.amm, "quote_buy", [
       nativeToScVal(marketId, { type: "u64" }),
       nativeToScVal(outcome, { type: "u32" }),
       nativeToScVal(shares, { type: "i128" }),
     ]);
+  },
+
+  async quoteSellParsed(marketId: number, outcome: number, shares: bigint): Promise<bigint> {
+    const raw = await readContract(CONTRACTS.amm, "quote_sell", [
+      nativeToScVal(marketId, { type: "u64" }),
+      nativeToScVal(outcome, { type: "u32" }),
+      nativeToScVal(shares, { type: "i128" }),
+    ]);
+    return i128ToBigInt(raw);
   },
 
   async buy(
@@ -91,6 +144,25 @@ export const AmmContract = {
       nativeToScVal(outcome, { type: "u32" }),
       nativeToScVal(shares, { type: "i128" }),
     ], userAddress);
+  },
+};
+
+export const OutcomeTokenContract = {
+  async balance(marketId: number, outcome: number, user: string): Promise<bigint> {
+    const raw = await readContract(CONTRACTS.outcomeToken, "balance", [
+      nativeToScVal(marketId, { type: "u64" }),
+      nativeToScVal(outcome, { type: "u32" }),
+      new Address(user).toScVal(),
+    ]);
+    return i128ToBigInt(raw);
+  },
+
+  async totalSupply(marketId: number, outcome: number): Promise<bigint> {
+    const raw = await readContract(CONTRACTS.outcomeToken, "total_supply", [
+      nativeToScVal(marketId, { type: "u64" }),
+      nativeToScVal(outcome, { type: "u32" }),
+    ]);
+    return i128ToBigInt(raw);
   },
 };
 

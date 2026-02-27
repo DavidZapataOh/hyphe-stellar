@@ -21,8 +21,10 @@ async function syncMarkets(): Promise<void> {
       const market = scValToNative(raw) as {
         id: number | bigint;
         question: string;
+        category: string;
         num_outcomes: number;
         end_time: number | bigint;
+        created_at: number | bigint;
         status: string; // Soroban enum: "Open" | "Closed" | "Resolved" | "Disputed"
         winning_outcome: number;
         total_collateral: bigint;
@@ -47,20 +49,25 @@ async function syncMarkets(): Promise<void> {
       // NOTE: totalCollateral is NOT synced from the factory because the
       // factory doesn't know about AMM trades. The indexer tracks collateral
       // by incrementing on each trade event. Only sync status & resolution.
+      const createdAt = new Date(Number(market.created_at) * 1000);
+
       await prisma.market.upsert({
         where: { id: i },
         update: {
           status,
           winningOutcome,
+          sportType: market.category || undefined,
         },
         create: {
           id: i,
           question: market.question,
           numOutcomes: market.num_outcomes,
           endTime,
+          createdAt,
           status,
           winningOutcome,
           totalCollateral: 0n,
+          sportType: market.category || null,
         },
       });
     } catch (error) {

@@ -7,7 +7,8 @@ import {
   Geography,
   Marker,
 } from "react-simple-maps";
-import { X, Globe } from "lucide-react";
+import { Globe } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { CountryMatch } from "@/lib/utils/countryMarkets";
 
 const GEO_URL = "/data/world-110m.json";
@@ -16,6 +17,7 @@ interface WorldMapProps {
   countryMatches: Map<string, CountryMatch>;
   selectedCountry: string | null;
   onSelectCountry: (code: string | null) => void;
+  className?: string;
 }
 
 interface TooltipState {
@@ -29,6 +31,7 @@ export function WorldMap({
   countryMatches,
   selectedCountry,
   onSelectCountry,
+  className,
 }: WorldMapProps) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
@@ -79,29 +82,7 @@ export function WorldMap({
   if (entries.length === 0) return null;
 
   return (
-    <section className="mb-10">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Globe className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-bold">Markets Around the World</h3>
-          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold text-primary">
-            {entries.length} {entries.length === 1 ? "country" : "countries"}
-          </span>
-        </div>
-        {selectedCountry && (
-          <button
-            onClick={() => onSelectCountry(null)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground"
-          >
-            Clear selection
-            <X className="h-3 w-3" />
-          </button>
-        )}
-      </div>
-
-      {/* Map container */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card">
+    <div className={cn("relative overflow-hidden rounded-2xl border border-border bg-card", className)}>
         {/* SVG glow filter (hidden) */}
         <svg width={0} height={0} className="absolute">
           <defs>
@@ -203,23 +184,22 @@ export function WorldMap({
         </ComposableMap>
 
         {/* Tooltip */}
-        {tooltip && (
-          <div
-            className="pointer-events-none fixed z-50 rounded-lg border border-border bg-popover px-3 py-1.5 shadow-lg"
-            style={{
-              left: tooltip.x + 12,
-              top: tooltip.y - 8,
-            }}
-          >
-            <p className="text-sm font-bold text-foreground">
-              {tooltip.name}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {tooltip.count} {tooltip.count === 1 ? "market" : "markets"}
-            </p>
-          </div>
-        )}
-      </div>
-    </section>
+      {tooltip && (
+        <div
+          className="pointer-events-none fixed z-50 rounded-lg border border-border bg-popover px-3 py-1.5 shadow-lg"
+          style={{
+            left: tooltip.x + 12,
+            top: tooltip.y - 8,
+          }}
+        >
+          <p className="text-sm font-bold text-foreground">
+            {tooltip.name}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {tooltip.count} {tooltip.count === 1 ? "market" : "markets"}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }

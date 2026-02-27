@@ -19,6 +19,10 @@ const statusConfig: Record<Status, { label: string; className: string }> = {
     label: "Resolved",
     className: "border-muted-foreground/20 bg-muted text-muted-foreground",
   },
+  Disputed: {
+    label: "Disputed",
+    className: "border-no/20 bg-no/10 text-no",
+  },
 };
 
 export function MarketStatusBadge({ status }: MarketStatusProps) {

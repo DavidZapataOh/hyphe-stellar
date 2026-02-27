@@ -20,7 +20,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Hyphe — Prediction Markets with Built-in Yield",
+  title: "Hyphe - Prediction Markets",
   description:
     "Trade on real-world outcomes and earn yield automatically. Built on Stellar.",
 };

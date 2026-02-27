@@ -65,6 +65,9 @@
                   "string": "Will Brazil win?"
                 },
                 {
+                  "string": "World Cup 2026"
+                },
+                {
                   "u32": 2
                 },
                 {
@@ -213,6 +216,22 @@
               "durability": "persistent",
               "val": {
                 "map": [
+                  {
+                    "key": {
+                      "symbol": "category"
+                    },
+                    "val": {
+                      "string": "World Cup 2026"
+                    }
+                  },
+                  {
+                    "key": {
+                      "symbol": "created_at"
+                    },
+                    "val": {
+                      "u64": "1000"
+                    }
+                  },
                   {
                     "key": {
                       "symbol": "end_time"

@@ -64,7 +64,7 @@ model Trade {
   user      String
   outcome   Int
   side      TradeSide
-  shares    BigInt
+  shares    Decimal
   cost      BigInt
   price     Float
   txHash    String    @map("tx_hash")

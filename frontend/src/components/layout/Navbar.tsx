@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WalletButton } from "./WalletButton";
@@ -26,6 +27,8 @@ const links = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
@@ -65,14 +68,24 @@ export function Navbar() {
 
         {/* Right: Search + Wallet */}
         <div className="flex flex-1 items-center justify-end gap-4">
-          <div className="relative max-w-md flex-1">
+          <form
+            className="relative max-w-md flex-1"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (searchQuery.trim()) {
+                router.push(`/?q=${encodeURIComponent(searchQuery.trim())}`);
+              }
+            }}
+          >
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
             <input
               type="text"
               placeholder="Search markets, categories..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="h-10 w-full rounded-lg border border-border bg-card pl-10 pr-4 text-base text-foreground placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
-          </div>
+          </form>
           <WalletButton />
         </div>
       </div>

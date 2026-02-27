@@ -1,12 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { TrendingUp, TrendingDown } from "lucide-react";
-import { Sparkline } from "@/components/shared/Sparkline";
 import { formatCompact } from "@/lib/utils/format";
 import type { Market, MarketOdds } from "@/lib/stellar/types";
 import { USDC_DECIMALS } from "@/lib/utils/constants";
-import { cn } from "@/lib/utils";
 
 interface MarketCardProps {
   market: Market;
@@ -21,24 +18,20 @@ export function MarketCard({ market, odds, onSelectOutcome }: MarketCardProps) {
   const noPct = Math.round(noPrice * 100);
   const volume = Number(market.total_volume) / 10 ** USDC_DECIMALS;
 
-  const sparkData = generateSparkData(market.id, yesPrice);
-  const change24h = ((yesPrice - 0.5) * 10).toFixed(1);
-  const isPositive = Number(change24h) >= 0;
-
   return (
     <Link href={`/markets/${market.id}`} className="group block">
       <div className="rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/50">
         {/* Top row */}
         <div className="mb-3 flex items-start justify-between">
-          <div className="rounded bg-border/50 px-2 py-0.5 text-xs font-bold uppercase text-muted-foreground">
-            {market.category}
-          </div>
+          {market.category && (
+            <div className="rounded bg-border/50 px-2 py-0.5 text-xs font-bold uppercase text-muted-foreground">
+              {market.category}
+            </div>
+          )}
           <div className="text-xs font-bold text-muted-foreground">
-            24h:{" "}
-            <span className={isPositive ? "text-yes" : "text-no"}>
-              {isPositive ? "+" : ""}
-              {change24h}%
-            </span>
+            {market.trade_count > 0 && (
+              <span>{market.trade_count} trades</span>
+            )}
           </div>
         </div>
 
@@ -47,7 +40,7 @@ export function MarketCard({ market, odds, onSelectOutcome }: MarketCardProps) {
           {market.question}
         </h4>
 
-        {/* Price + Sparkline */}
+        {/* Price + Volume */}
         <div className="mb-4 flex items-center justify-between">
           <div className="flex flex-col">
             <span className="mb-1 text-sm text-muted-foreground">
@@ -57,9 +50,12 @@ export function MarketCard({ market, odds, onSelectOutcome }: MarketCardProps) {
               ${yesPrice.toFixed(2)}
             </span>
           </div>
-          <div className="h-10 w-24">
-            <Sparkline data={sparkData} width={96} height={40} />
-          </div>
+          {volume > 0 && (
+            <div className="flex flex-col items-end">
+              <span className="mb-1 text-sm text-muted-foreground">Volume</span>
+              <span className="text-lg font-semibold">{formatCompact(volume)}</span>
+            </div>
+          )}
         </div>
 
         {/* Yes / No buttons */}
@@ -82,17 +78,4 @@ export function MarketCard({ market, odds, onSelectOutcome }: MarketCardProps) {
       </div>
     </Link>
   );
-}
-
-function generateSparkData(seed: number, currentPrice: number): number[] {
-  const points = 20;
-  const data: number[] = [];
-  let val = currentPrice * 0.85 + (seed % 10) * 0.01;
-  for (let i = 0; i < points; i++) {
-    const noise = Math.sin(seed * 13.37 + i * 2.1) * 0.08;
-    val = Math.max(0.05, Math.min(0.95, val + noise));
-    data.push(val);
-  }
-  data[data.length - 1] = currentPrice;
-  return data;
 }

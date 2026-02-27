@@ -73,57 +73,76 @@ export function parseEvent(
   const value = parseEventValue(event) as Record<string, unknown> | null;
 
   if (topics[0] === "buy" || topics[0] === "sell") {
+    // Event shape from AMM contract:
+    //   topics: [symbol("buy"|"sell"), market_id: u64, outcome: u32]
+    //   value:  tuple (user: Address, shares: i128, usdc_cost: i128) → parsed as array
+    const arr = Array.isArray(value) ? value : [];
     return {
       type: "trade",
       data: {
-        marketId: Number(value?.["market_id"] ?? topics[1] ?? 0),
-        user: String(value?.["user"] ?? ""),
-        outcome: Number(value?.["outcome"] ?? 0),
+        marketId: Number(topics[1] ?? 0),
+        user: String(arr[0] ?? ""),
+        outcome: Number(topics[2] ?? 0),
         side: topics[0] === "buy" ? "BUY" : "SELL",
-        shares: BigInt(String(value?.["shares"] ?? "0")),
-        cost: BigInt(String(value?.["cost"] ?? "0")),
+        shares: BigInt(String(arr[1] ?? "0")),
+        cost: BigInt(String(arr[2] ?? "0")),
       },
     };
   }
 
-  if (topics[0] === "market_created") {
+  if (topics[0] === "mkt_new") {
+    // Event shape from market_factory:
+    //   topics: [symbol("mkt_new"), market_id: u64]
+    //   value:  tuple (num_outcomes: u32, end_time: u64) → parsed as array
+    const arr = Array.isArray(value) ? value : [];
     return {
       type: "market_created",
       data: {
-        marketId: Number(value?.["market_id"] ?? 0),
-        question: String(value?.["question"] ?? ""),
-        numOutcomes: Number(value?.["num_outcomes"] ?? 2),
-        endTime: Number(value?.["end_time"] ?? 0),
+        marketId: Number(topics[1] ?? 0),
+        question: "",
+        numOutcomes: Number(arr[0] ?? 2),
+        endTime: Number(arr[1] ?? 0),
       },
     };
   }
 
-  if (topics[0] === "resolved") {
+  if (topics[0] === "resolve") {
+    // Event shape from market_factory:
+    //   topics: [symbol("resolve"), market_id: u64]
+    //   value:  winning_outcome: u32 (scalar, not tuple)
     return {
       type: "resolved",
       data: {
-        marketId: Number(value?.["market_id"] ?? topics[1] ?? 0),
-        winningOutcome: Number(value?.["outcome"] ?? 0),
+        marketId: Number(topics[1] ?? 0),
+        winningOutcome: Number(value ?? 0),
       },
     };
   }
 
   if (topics[0] === "deposit") {
+    // Event shape from hyphe_vault:
+    //   topics: [symbol("deposit")]
+    //   value:  tuple (user: Address, amount: i128) → parsed as array
+    const arr = Array.isArray(value) ? value : [];
     return {
       type: "deposit",
       data: {
-        user: String(value?.["user"] ?? ""),
-        amount: BigInt(String(value?.["amount"] ?? "0")),
+        user: String(arr[0] ?? ""),
+        amount: BigInt(String(arr[1] ?? "0")),
       },
     };
   }
 
   if (topics[0] === "withdraw") {
+    // Event shape from hyphe_vault:
+    //   topics: [symbol("withdraw")]
+    //   value:  tuple (user: Address, amount: i128) → parsed as array
+    const arr = Array.isArray(value) ? value : [];
     return {
       type: "withdraw",
       data: {
-        user: String(value?.["user"] ?? ""),
-        amount: BigInt(String(value?.["amount"] ?? "0")),
+        user: String(arr[0] ?? ""),
+        amount: BigInt(String(arr[1] ?? "0")),
       },
     };
   }

@@ -17,6 +17,8 @@ use math::{SCALE, exp_fixed, ln_fixed, mul_fixed, div_fixed, to_usdc_ceil, to_us
 pub struct LmsrState {
     pub b: i128,              // liquidity parameter (fixed-point 18 decimals)
     pub quantities: Vec<i128>, // outstanding shares per outcome (fixed-point)
+    pub trade_count: u64,     // total number of buy/sell trades
+    pub cumulative_volume: i128, // total USDC volume (7 decimals) across all trades
 }
 
 #[contracttype]
@@ -109,6 +111,8 @@ impl LmsrAmm {
         let state = LmsrState {
             b,
             quantities,
+            trade_count: 0,
+            cumulative_volume: 0,
         };
 
         env.storage().persistent().set(&DataKey::Market(market_id), &state);
@@ -163,7 +167,9 @@ impl LmsrAmm {
         let amm_addr = env.current_contract_address();
         Self::mint_tokens(&env, &ot_addr, &amm_addr, market_id, outcome, &user, shares);
 
-        // Save updated state
+        // Increment trade count, accumulate volume, and save updated state
+        state.trade_count += 1;
+        state.cumulative_volume += usdc_cost;
         env.storage().persistent().set(&DataKey::Market(market_id), &state);
         Self::bump_key(&env, &DataKey::Market(market_id));
 
@@ -221,6 +227,9 @@ impl LmsrAmm {
             usdc.transfer(&env.current_contract_address(), &user, &usdc_refund);
         }
 
+        // Increment trade count, accumulate volume, and save updated state
+        state.trade_count += 1;
+        state.cumulative_volume += usdc_refund;
         env.storage().persistent().set(&DataKey::Market(market_id), &state);
         Self::bump_key(&env, &DataKey::Market(market_id));
 
@@ -272,9 +281,45 @@ impl LmsrAmm {
         Ok(to_usdc_ceil(cost_after - cost_before))
     }
 
+    /// Quote the refund for selling N shares in USDC (7 decimals) without executing.
+    pub fn quote_sell(
+        env: Env,
+        market_id: u64,
+        outcome: u32,
+        shares: i128,
+    ) -> Result<i128, Error> {
+        let mut state = Self::get_state(&env, market_id)?;
+        if outcome as u32 >= state.quantities.len() {
+            return Err(Error::InvalidOutcome);
+        }
+
+        let current = state.quantities.get(outcome).unwrap();
+        if current < shares {
+            return Err(Error::InsufficientLiquidity);
+        }
+
+        let cost_before = Self::cost_function(&state)?;
+        state.quantities.set(outcome, current - shares);
+        let cost_after = Self::cost_function(&state)?;
+
+        Ok(to_usdc_floor(cost_before - cost_after))
+    }
+
     /// Get full LMSR state for a market.
     pub fn get_state_view(env: Env, market_id: u64) -> Result<LmsrState, Error> {
         Self::get_state(&env, market_id)
+    }
+
+    /// Get trade count for a market.
+    pub fn get_trade_count(env: Env, market_id: u64) -> Result<u64, Error> {
+        let state = Self::get_state(&env, market_id)?;
+        Ok(state.trade_count)
+    }
+
+    /// Get cumulative USDC volume for a market (7 decimals).
+    pub fn get_volume(env: Env, market_id: u64) -> Result<i128, Error> {
+        let state = Self::get_state(&env, market_id)?;
+        Ok(state.cumulative_volume)
     }
 
     /// Get AMM's USDC balance (actual token balance).

@@ -1,36 +1,15 @@
 "use client";
 
+import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import {
   Compass,
-  Trophy,
-  Users,
-  ArrowLeftRight,
-  Newspaper,
-  TrendingUp,
-  Swords,
   Clock,
   Droplets,
   ShieldCheck,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Category {
-  value: string;
-  label: string;
-  icon: typeof Compass;
-  special?: boolean;
-}
-
-const categories: Category[] = [
-  { value: "all", label: "All Markets", icon: Compass },
-  { value: "World Cup 2026", label: "World Cup 2026", icon: Trophy, special: true },
-  { value: "Transfers", label: "Transfers", icon: ArrowLeftRight },
-  { value: "Player Value", label: "Player Value", icon: TrendingUp },
-  { value: "Leagues", label: "Leagues", icon: Swords },
-  { value: "Rumors", label: "Rumors & News", icon: Newspaper },
-  { value: "National Teams", label: "National Teams", icon: Users },
-];
 
 const filters = [
   { id: "ending-soon", label: "Ending Soon", icon: Clock },
@@ -44,6 +23,8 @@ interface SidebarProps {
   onCategoryChange?: (cat: string) => void;
   activeFilters?: string[];
   onFilterToggle?: (filterId: string) => void;
+  /** Categories derived from on-chain market data */
+  chainCategories?: string[];
 }
 
 export function Sidebar({
@@ -52,9 +33,21 @@ export function Sidebar({
   onCategoryChange,
   activeFilters = [],
   onFilterToggle,
+  chainCategories = [],
 }: SidebarProps) {
   const pathname = usePathname();
   const isHome = pathname === "/" || pathname === "/markets";
+
+  // Build category list dynamically from on-chain data
+  const categories = useMemo(() => {
+    const items: { value: string; label: string }[] = [
+      { value: "all", label: "All Markets" },
+    ];
+    for (const cat of chainCategories) {
+      if (cat) items.push({ value: cat, label: cat });
+    }
+    return items;
+  }, [chainCategories]);
 
   return (
     <aside
@@ -70,30 +63,9 @@ export function Sidebar({
             Explore
           </h4>
           <nav className="space-y-0.5">
-            {categories.map(({ value, label, icon: Icon, special }) => {
+            {categories.map(({ value, label }) => {
               const active = isHome && activeCategory === value;
-
-              if (special) {
-                return (
-                  <button
-                    key={value}
-                    onClick={() => onCategoryChange?.(value)}
-                    className={cn(
-                      "relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all",
-                      active
-                        ? "bg-gradient-to-r from-amber-500/20 to-yellow-500/10 text-amber-400 shadow-[inset_0_0_0_1px_oklch(0.75_0.18_85/0.3)]"
-                        : "text-amber-400/70 hover:bg-amber-500/10 hover:text-amber-400",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {label}
-                    <span className="ml-auto flex h-2 w-2">
-                      <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-amber-400 opacity-50" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
-                    </span>
-                  </button>
-                );
-              }
+              const Icon = value === "all" ? Compass : Tag;
 
               return (
                 <button

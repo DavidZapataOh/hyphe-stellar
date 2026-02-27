@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { PresetAmounts } from "@/components/shared/PresetAmounts";
 import { cn } from "@/lib/utils";
 import { useWallet } from "@/hooks/useWallet";
 import { useTrade } from "@/hooks/useTrade";
+import { usePositions } from "@/hooks/usePositions";
+import { useChainQuote } from "@/hooks/useChainQuote";
+import { useChainSellQuote } from "@/hooks/useChainSellQuote";
 import { txPending, txSuccess, txError } from "@/components/shared/TxToast";
 import Decimal from "decimal.js";
 import { toast } from "sonner";
@@ -25,23 +28,73 @@ export function TradingPanel({
 }: TradingPanelProps) {
   const { connected, connect } = useWallet();
   const { buy, sell, isBuying, isSelling } = useTrade();
+  const { data: positions } = usePositions();
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [outcome, setOutcome] = useState<0 | 1>(0);
   const [amount, setAmount] = useState("");
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
 
-
   const isLoading = isBuying || isSelling;
   const parsedAmount = parseFloat(amount) || 0;
   const currentOdds = outcome === 0 ? odds.yes : odds.no;
-  const estimatedReturn =
-    parsedAmount > 0 ? parsedAmount / currentOdds - parsedAmount : 0;
-  const returnPct =
-    parsedAmount > 0 ? ((1 / currentOdds - 1) * 100).toFixed(0) : "0";
+
+  // User's balance for current outcome (in shares, 18 decimal)
+  const userPosition = useMemo(() => {
+    if (!positions) return null;
+    return positions.find(
+      (p) => p.marketId === marketId && p.outcome === outcome,
+    ) ?? null;
+  }, [positions, marketId, outcome]);
+
+  const userSharesFloat = userPosition
+    ? Number(userPosition.shares) / 1e18
+    : 0;
+
+  // BUY: Convert USDC amount → shares in 18-decimal fixed-point
+  const buyShares = useMemo(() => {
+    if (side !== "buy" || parsedAmount <= 0 || currentOdds <= 0) return 0n;
+    return BigInt(
+      new Decimal(amount).div(Math.max(currentOdds, 0.01)).mul("1000000000000000000").toFixed(0),
+    );
+  }, [side, amount, parsedAmount, currentOdds]);
+
+  // SELL: Convert shares input → 18-decimal bigint
+  const sellShares = useMemo(() => {
+    if (side !== "sell" || parsedAmount <= 0) return 0n;
+    return BigInt(
+      new Decimal(amount).mul("1000000000000000000").toFixed(0),
+    );
+  }, [side, amount, parsedAmount]);
+
+  const activeShares = side === "buy" ? buyShares : sellShares;
+
+  // Get real quote from AMM contract
+  const { data: buyQuote } = useChainQuote(
+    marketId, outcome, buyShares,
+    side === "buy" && parsedAmount > 0,
+  );
+  const { data: sellQuote } = useChainSellQuote(
+    marketId, outcome, sellShares,
+    side === "sell" && parsedAmount > 0,
+  );
 
   function handlePresetSelect(preset: number) {
     setSelectedPreset(preset);
     setAmount(preset.toString());
+  }
+
+  function handleSideChange(newSide: "buy" | "sell") {
+    setSide(newSide);
+    setAmount("");
+    setSelectedPreset(null);
+  }
+
+  function handleSellMax() {
+    if (userSharesFloat > 0) {
+      // Use a slightly rounded value to avoid precision overflow
+      setAmount(userSharesFloat.toFixed(4));
+      setSelectedPreset(null);
+    }
   }
 
   async function handleTrade() {
@@ -53,19 +106,16 @@ export function TradingPanel({
       toast.error("Enter a valid amount");
       return;
     }
-    // Convert USDC amount → shares in 18-decimal fixed-point.
-    // The contract's buy(shares) uses LMSR math in 18-decimal scale (SCALE = 10^18).
-    // shares_to_buy ≈ usdc_amount / current_price, then scaled to 18 decimals.
-    const price = outcome === 0 ? odds.yes : odds.no;
-    const shares = BigInt(
-      new Decimal(amount).div(Math.max(price, 0.01)).mul("1000000000000000000").toFixed(0)
-    );
+    if (side === "sell" && sellShares > (userPosition?.shares ?? 0n)) {
+      toast.error("Insufficient shares");
+      return;
+    }
     const toastId = txPending(
       `${side === "buy" ? "Buying" : "Selling"} ${outcome === 0 ? "YES" : "NO"}...`,
     );
     try {
       const fn = side === "buy" ? buy : sell;
-      const result = await fn({ marketId, outcome, shares });
+      const result = await fn({ marketId, outcome, shares: activeShares });
       toast.dismiss(toastId);
       txSuccess(
         result.hash,
@@ -81,6 +131,32 @@ export function TradingPanel({
 
   const panelContent = (
     <div className="space-y-8 p-6">
+      {/* Buy / Sell toggle */}
+      <div className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-background/50 p-1">
+        <button
+          onClick={() => handleSideChange("buy")}
+          className={cn(
+            "rounded-md py-2 text-sm font-bold transition-colors",
+            side === "buy"
+              ? "bg-yes text-white shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Buy
+        </button>
+        <button
+          onClick={() => handleSideChange("sell")}
+          className={cn(
+            "rounded-md py-2 text-sm font-bold transition-colors",
+            side === "sell"
+              ? "bg-no text-white shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Sell
+        </button>
+      </div>
+
       {/* Outcome toggle */}
       <div className="grid grid-cols-2 gap-3">
         <button
@@ -98,7 +174,7 @@ export function TradingPanel({
               outcome === 0 ? "text-primary" : "text-muted-foreground",
             )}
           >
-            Predict
+            {side === "buy" ? "Predict" : "Sell"}
           </span>
           <span className="text-xl font-black">YES</span>
         </button>
@@ -118,18 +194,26 @@ export function TradingPanel({
               outcome === 1 ? "text-primary" : "text-muted-foreground",
             )}
           >
-            Predict
+            {side === "buy" ? "Predict" : "Sell"}
           </span>
           <span className="text-xl font-black">NO</span>
         </button>
       </div>
 
-      {/* Position Size */}
+      {/* Amount input */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-base font-semibold text-foreground/80">
-            Position Size
+            {side === "buy" ? "Position Size" : "Shares to Sell"}
           </label>
+          {side === "sell" && userSharesFloat > 0 && (
+            <button
+              onClick={handleSellMax}
+              className="text-xs font-bold text-primary hover:text-primary/80"
+            >
+              Max: {userSharesFloat.toFixed(2)}
+            </button>
+          )}
         </div>
         <div className="relative">
           <Input
@@ -145,44 +229,76 @@ export function TradingPanel({
             className="h-14 border-border bg-background text-xl font-black tabular-nums placeholder:text-muted-foreground/60"
           />
           <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-muted-foreground/70">
-            USDC
+            {side === "buy" ? "USDC" : "Shares"}
           </span>
         </div>
-        <PresetAmounts
-          amounts={[5, 10, 25, 50]}
-          selected={selectedPreset}
-          onSelect={handlePresetSelect}
-        />
+        {side === "buy" && (
+          <PresetAmounts
+            amounts={[5, 10, 25, 50]}
+            selected={selectedPreset}
+            onSelect={handlePresetSelect}
+          />
+        )}
       </div>
 
       {/* Summary stats */}
       <div className="space-y-3 rounded-xl border border-border/50 bg-background/50 p-5">
-        <div className="flex justify-between text-base">
-          <span className="text-muted-foreground">Position Size</span>
-          <span className="font-medium">
-            ${parsedAmount > 0 ? parsedAmount.toFixed(2) : "0.00"}
-          </span>
-        </div>
-        <div className="flex justify-between text-base">
-          <span className="text-muted-foreground">Potential Return</span>
-          <span className="font-bold text-yes">
-            ${estimatedReturn > 0 ? estimatedReturn.toFixed(2) : "0.00"}{" "}
-            {parsedAmount > 0 && (
-              <span className="text-yes/70">(+{returnPct}%)</span>
+        {side === "buy" ? (
+          <>
+            <div className="flex justify-between text-base">
+              <span className="text-muted-foreground">Estimated Cost</span>
+              <span className="font-medium">
+                ${buyQuote ? buyQuote.costUsdc.toFixed(2) : parsedAmount > 0 ? "..." : "0.00"}
+              </span>
+            </div>
+            <div className="flex justify-between text-base">
+              <span className="text-muted-foreground">Potential Return</span>
+              <span className="font-bold text-yes">
+                {buyQuote && buyQuote.returnUsdc > 0 ? (
+                  <>
+                    ${buyQuote.returnUsdc.toFixed(2)}{" "}
+                    <span className="text-yes/70">(+{buyQuote.returnPct.toFixed(0)}%)</span>
+                  </>
+                ) : (
+                  "$0.00"
+                )}
+              </span>
+            </div>
+            {buyQuote && buyQuote.slippagePct > 0 && (
+              <div className="flex justify-between text-base">
+                <span className="text-muted-foreground">Slippage</span>
+                <span className="font-medium">{buyQuote.slippagePct.toFixed(2)}%</span>
+              </div>
             )}
-          </span>
-        </div>
-        <div className="flex justify-between text-base">
-          <span className="text-muted-foreground">Slippage</span>
-          <span className="font-medium">0.15%</span>
-        </div>
+          </>
+        ) : (
+          <>
+            <div className="flex justify-between text-base">
+              <span className="text-muted-foreground">You Receive</span>
+              <span className="font-bold text-yes">
+                ${sellQuote ? sellQuote.refundUsdc.toFixed(2) : parsedAmount > 0 ? "..." : "0.00"}
+              </span>
+            </div>
+            {sellQuote && sellQuote.slippagePct > 0 && (
+              <div className="flex justify-between text-base">
+                <span className="text-muted-foreground">Slippage</span>
+                <span className="font-medium">{sellQuote.slippagePct.toFixed(2)}%</span>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* CTA */}
       <button
         onClick={handleTrade}
         disabled={isLoading}
-        className="group flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-black text-white shadow-xl shadow-primary/30 transition-all hover:bg-primary/90 disabled:opacity-50"
+        className={cn(
+          "group flex w-full items-center justify-center gap-2 rounded-xl py-4 font-black text-white shadow-xl transition-all disabled:opacity-50",
+          side === "buy"
+            ? "bg-primary shadow-primary/30 hover:bg-primary/90"
+            : "bg-no shadow-no/30 hover:bg-no/90",
+        )}
       >
         {!connected ? (
           <>
@@ -196,7 +312,7 @@ export function TradingPanel({
           </>
         ) : (
           <>
-            Confirm Position
+            {side === "buy" ? "Confirm Buy" : "Confirm Sell"}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </>
         )}
@@ -217,9 +333,6 @@ export function TradingPanel({
     >
       <div className="flex items-center justify-between px-6 py-5">
         <h3 className="text-xl font-bold">Smart Trade</h3>
-        <button className="text-sm font-bold uppercase tracking-widest text-primary hover:underline">
-          Switch to Pro
-        </button>
       </div>
       {panelContent}
     </div>

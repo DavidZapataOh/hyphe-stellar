@@ -9,8 +9,7 @@ const productLinks = [
 
 const ecosystemLinks = [
   { href: "https://stellar.org", label: "Stellar" },
-  { href: "https://blend.capital", label: "Blend Protocol" },
-  { href: "https://soroswap.finance", label: "Soroswap" },
+  { href: "https://blend.capital", label: "Blend Protocol" }
 ];
 
 export function Footer() {
@@ -77,7 +76,7 @@ export function Footer() {
               Built For
             </h4>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Stellar Build Better Hackathon 2026
+              Stellar Impacta 2026
             </p>
           </div>
         </div>

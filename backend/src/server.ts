@@ -5,6 +5,7 @@ import { marketRoutes } from "./routes/markets.js";
 import { vaultRoutes } from "./routes/vault.js";
 import { infofiRoutes } from "./routes/infofi.js";
 import { wsRoutes } from "./routes/ws.js";
+import { statsRoutes } from "./routes/stats.js";
 import { startOracleIngester } from "./services/oracle-ingester.js";
 import { startIndexer } from "./services/indexer.js";
 import { startPriceTracker } from "./services/price-tracker.js";
@@ -34,6 +35,7 @@ async function main() {
   await app.register(vaultRoutes);
   await app.register(infofiRoutes);
   await app.register(wsRoutes);
+  await app.register(statsRoutes);
 
   // ── Health check ───────────────────────
   app.get("/health", async () => ({ status: "ok", timestamp: Date.now() }));

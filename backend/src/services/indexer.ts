@@ -28,7 +28,7 @@ async function processEvent(
           user: d.user,
           outcome: d.outcome,
           side: d.side,
-          shares: d.shares,
+          shares: d.shares.toString(),
           cost: d.cost,
           price: Number(d.cost) / Math.max(Number(d.shares), 1),
           txHash: event.id,
