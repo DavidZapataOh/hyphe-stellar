@@ -13,6 +13,7 @@ import {
   Loader2,
   ExternalLink,
   Globe,
+  SlidersHorizontal,
 } from "lucide-react";
 import { MarketGrid } from "@/components/markets/MarketGrid";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -20,6 +21,12 @@ import { StatsBar } from "@/components/layout/StatsBar";
 import { Footer } from "@/components/layout/Footer";
 import { Input } from "@/components/ui/input";
 import { PresetAmounts } from "@/components/shared/PresetAmounts";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { txPending, txSuccess, txError } from "@/components/shared/TxToast";
 import { useMarkets } from "@/hooks/useMarkets";
 import { useMarketsStore } from "@/stores/markets";
@@ -69,7 +76,7 @@ function FeaturedMarketHero({
         }}
       />
 
-      <div className="relative z-20 flex max-w-2xl flex-col justify-center p-8">
+      <div className="relative z-20 flex max-w-2xl flex-col justify-center p-4 md:p-8">
         {/* Badges */}
         <div className="mb-4 flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
@@ -83,7 +90,7 @@ function FeaturedMarketHero({
         </div>
 
         {/* Title */}
-        <h2 className="mb-4 text-3xl font-extrabold leading-tight text-white">
+        <h2 className="mb-4 text-xl font-extrabold leading-tight text-white sm:text-2xl md:text-3xl">
           {market.question}
         </h2>
 
@@ -118,7 +125,7 @@ function FeaturedMarketHero({
         <div className="mb-8 flex items-center gap-4">
           <Link
             href={`/markets/${market.id}`}
-            className="flex h-14 flex-1 items-center justify-center gap-2 rounded-xl bg-yes text-lg font-bold text-white shadow-lg shadow-yes/20 transition-transform active:scale-[0.98] hover:bg-yes/90"
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-yes text-lg font-bold text-white shadow-lg shadow-yes/20 transition-transform active:scale-[0.98] hover:bg-yes/90 md:h-14"
           >
             Trade Yes{" "}
             <span className="text-sm font-normal opacity-80">
@@ -127,7 +134,7 @@ function FeaturedMarketHero({
           </Link>
           <Link
             href={`/markets/${market.id}`}
-            className="flex h-14 flex-1 items-center justify-center gap-2 rounded-xl bg-no text-lg font-bold text-white shadow-lg shadow-no/20 transition-transform active:scale-[0.98] hover:bg-no/90"
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-no text-lg font-bold text-white shadow-lg shadow-no/20 transition-transform active:scale-[0.98] hover:bg-no/90 md:h-14"
           >
             Trade No{" "}
             <span className="text-sm font-normal opacity-80">
@@ -510,6 +517,7 @@ function HomeContent() {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [showMap, setShowMap] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { data: markets, isLoading } = useMarkets("Open");
   const { data: vaultInfo } = useVaultInfo();
@@ -621,10 +629,9 @@ function HomeContent() {
       <StatsBar vaultInfo={vaultInfo} marketsCount={markets?.length ?? 0} totalVolume={totalVolume} stats={platformStats} />
 
       {/* 3-column layout */}
-      <div className="flex flex-1">
-        {/* Left Sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Sidebar — desktop only (hidden on mobile via Sidebar's own className) */}
         <Sidebar
-          className="flex shrink-0 flex-col"
           activeCategory={category}
           onCategoryChange={handleCategoryChange}
           activeFilters={activeFilters}
@@ -633,7 +640,32 @@ function HomeContent() {
         />
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="min-w-0 flex-1 overflow-y-auto px-4 py-4 md:p-8">
+          {/* Mobile Filters button */}
+          <div className="mb-4 lg:hidden">
+            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+              <SheetTrigger asChild>
+                <button className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-bold text-muted-foreground transition-colors hover:text-foreground">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filters
+                </button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-72 bg-background p-0">
+                <SheetTitle className="sr-only">Filters</SheetTitle>
+                <Sidebar
+                  className="!flex !w-full border-none"
+                  activeCategory={category}
+                  onCategoryChange={(cat) => {
+                    handleCategoryChange(cat);
+                    setSidebarOpen(false);
+                  }}
+                  activeFilters={activeFilters}
+                  onFilterToggle={handleFilterToggle}
+                  chainCategories={chainCategories}
+                />
+              </SheetContent>
+            </Sheet>
+          </div>
           {/* Featured Market Hero */}
           {!isLoading && featuredMarket && (
             <section className="mb-10">
@@ -651,9 +683,9 @@ function HomeContent() {
           )}
 
           {/* Live Markets Header + Tabs */}
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-y-3">
-            <div className="flex flex-wrap items-center gap-4">
-              <h3 className="text-2xl font-bold">Live Markets</h3>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3 md:gap-4">
+              <h3 className="text-xl font-bold md:text-2xl">Live Markets</h3>
               {selectedCountry && countryMatches.has(selectedCountry) && (
                 <button
                   onClick={() => setSelectedCountry(null)}
@@ -663,7 +695,7 @@ function HomeContent() {
                   <X className="h-3 w-3" />
                 </button>
               )}
-              <div className="flex gap-1 rounded-lg border border-border bg-card p-1">
+              <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1">
                 {(["trending", "newest", "ending"] as const).map((tab) => (
                   <button
                     key={tab}
@@ -672,7 +704,7 @@ function HomeContent() {
                       setShowMap(false);
                     }}
                     className={cn(
-                      "rounded-md px-3 py-1.5 text-sm font-bold transition-colors",
+                      "shrink-0 rounded-md px-3 py-1.5 text-sm font-bold transition-colors",
                       sortTab === tab && !showMap
                         ? "bg-primary text-white shadow-sm"
                         : "text-muted-foreground hover:text-foreground",
@@ -688,7 +720,7 @@ function HomeContent() {
                 <button
                   onClick={() => setShowMap(true)}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-bold transition-colors",
+                    "flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-bold transition-colors",
                     showMap
                       ? "bg-primary text-white shadow-sm"
                       : "text-muted-foreground hover:text-foreground",

@@ -25,11 +25,11 @@ export function TradeHistory({ trades }: TradeHistoryProps) {
       <Table>
         <TableHeader>
           <TableRow className="border-border/30 hover:bg-transparent">
-            <TableHead className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">User</TableHead>
-            <TableHead className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Side</TableHead>
-            <TableHead className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Outcome</TableHead>
-            <TableHead className="text-right text-sm font-semibold uppercase tracking-wider text-muted-foreground">Amount</TableHead>
-            <TableHead className="text-right text-sm font-semibold uppercase tracking-wider text-muted-foreground">Time</TableHead>
+            <TableHead className="whitespace-nowrap text-sm font-semibold uppercase tracking-wider text-muted-foreground">User</TableHead>
+            <TableHead className="whitespace-nowrap text-sm font-semibold uppercase tracking-wider text-muted-foreground">Side</TableHead>
+            <TableHead className="whitespace-nowrap text-sm font-semibold uppercase tracking-wider text-muted-foreground">Outcome</TableHead>
+            <TableHead className="whitespace-nowrap text-right text-sm font-semibold uppercase tracking-wider text-muted-foreground">Amount</TableHead>
+            <TableHead className="whitespace-nowrap text-right text-sm font-semibold uppercase tracking-wider text-muted-foreground">Time</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

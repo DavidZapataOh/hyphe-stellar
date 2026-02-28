@@ -22,8 +22,8 @@ export function StatsBar({ vaultInfo, marketsCount, totalVolume, stats }: StatsB
 
   return (
     <div className="border-b border-border bg-stats-bar">
-      <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-6 px-6 py-3">
-        <div className="flex items-center gap-8">
+      <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-4 px-4 py-2 md:gap-8 md:px-6 md:py-3">
+        <div className="flex flex-wrap items-center gap-4 md:gap-8">
           {/* TVL */}
           <div className="flex flex-col">
             <span className="mb-1 text-xs font-bold uppercase leading-none tracking-widest text-muted-foreground">
@@ -33,12 +33,12 @@ export function StatsBar({ vaultInfo, marketsCount, totalVolume, stats }: StatsB
               <AnimatedNumber
                 value={tvl}
                 format={(n) => formatCompact(n)}
-                className="text-xl font-bold tabular-nums"
+                className="text-base font-bold tabular-nums md:text-xl"
               />
             </div>
           </div>
 
-          <div className="h-8 w-px bg-border" />
+          <div className="hidden h-8 w-px bg-border md:block" />
 
           {/* Total Volume — from chain markets */}
           {totalVolume != null && totalVolume > 0 && (
@@ -51,11 +51,11 @@ export function StatsBar({ vaultInfo, marketsCount, totalVolume, stats }: StatsB
                   <AnimatedNumber
                     value={totalVolume}
                     format={(n) => formatCompact(n)}
-                    className="text-xl font-bold tabular-nums"
+                    className="text-base font-bold tabular-nums md:text-xl"
                   />
                 </div>
               </div>
-              <div className="h-8 w-px bg-border" />
+              <div className="hidden h-8 w-px bg-border md:block" />
             </>
           )}
 
@@ -70,11 +70,11 @@ export function StatsBar({ vaultInfo, marketsCount, totalVolume, stats }: StatsB
                   <AnimatedNumber
                     value={volume24h}
                     format={(n) => formatCompact(n)}
-                    className="text-xl font-bold tabular-nums"
+                    className="text-base font-bold tabular-nums md:text-xl"
                   />
                 </div>
               </div>
-              <div className="h-8 w-px bg-border" />
+              <div className="hidden h-8 w-px bg-border md:block" />
             </>
           )}
 
@@ -87,7 +87,7 @@ export function StatsBar({ vaultInfo, marketsCount, totalVolume, stats }: StatsB
               <AnimatedNumber
                 value={marketsCount}
                 format={(n) => Math.round(n).toString()}
-                className="text-xl font-bold tabular-nums"
+                className="text-base font-bold tabular-nums md:text-xl"
               />
             </div>
           </div>
@@ -95,7 +95,7 @@ export function StatsBar({ vaultInfo, marketsCount, totalVolume, stats }: StatsB
           {/* Total Trades — from backend indexed events */}
           {totalTrades > 0 && (
             <>
-              <div className="h-8 w-px bg-border" />
+              <div className="hidden h-8 w-px bg-border md:block" />
               <div className="flex flex-col">
                 <span className="mb-1 text-xs font-bold uppercase leading-none tracking-widest text-muted-foreground">
                   Total Trades
@@ -104,7 +104,7 @@ export function StatsBar({ vaultInfo, marketsCount, totalVolume, stats }: StatsB
                   <AnimatedNumber
                     value={totalTrades}
                     format={(n) => Math.round(n).toString()}
-                    className="text-xl font-bold tabular-nums"
+                    className="text-base font-bold tabular-nums md:text-xl"
                   />
                 </div>
               </div>

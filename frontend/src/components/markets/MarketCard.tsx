@@ -62,14 +62,14 @@ export function MarketCard({ market, odds, onSelectOutcome }: MarketCardProps) {
         <div className="flex gap-3">
           <button
             onClick={onSelectOutcome ? (e) => { e.preventDefault(); e.stopPropagation(); onSelectOutcome(market.id, 0); } : undefined}
-            className="flex-1 rounded-lg bg-border py-2 text-base font-bold text-foreground/80 transition-all hover:bg-yes/20 hover:text-yes"
+            className="flex-1 rounded-lg bg-border py-3 text-base font-bold text-foreground/80 transition-all hover:bg-yes/20 hover:text-yes md:py-2"
           >
             Yes{" "}
             <span className="font-normal opacity-60">{yesPct}%</span>
           </button>
           <button
             onClick={onSelectOutcome ? (e) => { e.preventDefault(); e.stopPropagation(); onSelectOutcome(market.id, 1); } : undefined}
-            className="flex-1 rounded-lg bg-border py-2 text-base font-bold text-foreground/80 transition-all hover:bg-no/20 hover:text-no"
+            className="flex-1 rounded-lg bg-border py-3 text-base font-bold text-foreground/80 transition-all hover:bg-no/20 hover:text-no md:py-2"
           >
             No{" "}
             <span className="font-normal opacity-60">{noPct}%</span>

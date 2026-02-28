@@ -45,7 +45,7 @@ export function OddsChart({ data, className }: OddsChartProps) {
         borderColor: isDark ? "#2d2a3c" : "#dddde6",
       },
       width: containerRef.current.clientWidth,
-      height: 300,
+      height: containerRef.current.clientHeight || 300,
     });
 
     const yesSeries = chart.addSeries(LineSeries, {
@@ -64,7 +64,10 @@ export function OddsChart({ data, className }: OddsChartProps) {
 
     const handleResize = () => {
       if (containerRef.current) {
-        chart.applyOptions({ width: containerRef.current.clientWidth });
+        chart.applyOptions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight || 300,
+        });
       }
     };
     window.addEventListener("resize", handleResize);

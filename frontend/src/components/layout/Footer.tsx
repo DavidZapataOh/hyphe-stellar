@@ -16,7 +16,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border/30">
       <div className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6">
-        <div className="grid grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           {/* Brand */}
           <div>
             <div className="mb-3 flex items-center gap-2">
@@ -82,7 +82,7 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-10 flex items-center justify-between border-t border-border/20 pt-6">
+        <div className="mt-10 flex flex-col items-center gap-3 border-t border-border/20 pt-6 sm:flex-row sm:justify-between">
           <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} Hyphe
           </p>

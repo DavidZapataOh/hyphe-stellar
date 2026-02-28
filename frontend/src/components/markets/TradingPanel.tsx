@@ -130,13 +130,13 @@ export function TradingPanel({
   }
 
   const panelContent = (
-    <div className="space-y-8 p-6">
+    <div className="space-y-6 p-4 md:space-y-8 md:p-6">
       {/* Buy / Sell toggle */}
       <div className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-background/50 p-1">
         <button
           onClick={() => handleSideChange("buy")}
           className={cn(
-            "rounded-md py-2 text-sm font-bold transition-colors",
+            "rounded-md py-2.5 text-sm font-bold transition-colors md:py-2",
             side === "buy"
               ? "bg-yes text-white shadow-sm"
               : "text-muted-foreground hover:text-foreground",
@@ -147,7 +147,7 @@ export function TradingPanel({
         <button
           onClick={() => handleSideChange("sell")}
           className={cn(
-            "rounded-md py-2 text-sm font-bold transition-colors",
+            "rounded-md py-2.5 text-sm font-bold transition-colors md:py-2",
             side === "sell"
               ? "bg-no text-white shadow-sm"
               : "text-muted-foreground hover:text-foreground",
@@ -327,7 +327,7 @@ export function TradingPanel({
   return (
     <div
       className={cn(
-        "sticky top-28 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl",
+        "overflow-hidden rounded-2xl border border-border bg-card shadow-2xl md:sticky md:top-28",
         className,
       )}
     >

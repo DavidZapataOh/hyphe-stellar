@@ -25,7 +25,7 @@ export function EmptyState({
   tips,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
+    <div className="flex flex-col items-center justify-center py-10 text-center md:py-20">
       {/* Icon with glow background + float animation */}
       <div className="relative mb-6">
         <div className="animate-float flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/10 bg-primary/5">

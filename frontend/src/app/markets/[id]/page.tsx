@@ -49,16 +49,16 @@ export default function MarketDetailPage({
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-[1400px] px-8 py-10">
+      <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-8 md:py-10">
         <Skeleton className="mb-3 h-4 w-32" />
-        <Skeleton className="mb-2 h-12 w-[600px]" />
+        <Skeleton className="mb-2 h-12 w-full max-w-[600px]" />
         <Skeleton className="mb-10 h-6 w-[300px]" />
-        <div className="grid gap-10 grid-cols-12">
-          <div className="space-y-6 col-span-8">
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-12">
+          <div className="space-y-6 md:col-span-8">
             <Skeleton className="h-24 rounded-xl" />
             <Skeleton className="h-[400px] rounded-xl" />
           </div>
-          <div className="col-span-4">
+          <div className="md:col-span-4">
             <Skeleton className="h-[500px] rounded-2xl" />
           </div>
         </div>
@@ -68,7 +68,7 @@ export default function MarketDetailPage({
 
   if (!market) {
     return (
-      <div className="mx-auto max-w-[1400px] px-8 py-20 text-center">
+      <div className="mx-auto max-w-[1400px] px-4 py-20 text-center md:px-8">
         <p className="text-lg text-muted-foreground">Market not found.</p>
         <Link
           href="/"
@@ -87,7 +87,7 @@ export default function MarketDetailPage({
 
   return (
     <>
-      <main className="mx-auto max-w-[1400px] w-full px-8 py-10">
+      <main className="mx-auto max-w-[1400px] w-full px-4 py-6 md:px-8 md:py-10">
         {/* Breadcrumbs */}
         <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-primary">
           <BarChart3 className="h-3.5 w-3.5" />
@@ -95,12 +95,12 @@ export default function MarketDetailPage({
         </div>
 
         {/* HUGE Title */}
-        <h1 className="mb-6 max-w-3xl text-5xl font-black leading-tight tracking-tight">
+        <h1 className="mb-6 max-w-3xl text-2xl font-black leading-tight tracking-tight sm:text-3xl md:text-4xl lg:text-5xl">
           {market.question}
         </h1>
 
         {/* Stats row */}
-        <div className="mb-10 flex items-center gap-6">
+        <div className="mb-10 flex flex-wrap items-center gap-4 md:gap-6">
           <div className="flex flex-col">
             <span className="text-base font-medium text-muted-foreground">
               Current Probability
@@ -109,7 +109,7 @@ export default function MarketDetailPage({
               {yesPct}%
             </span>
           </div>
-          <div className="mx-2 h-10 w-px bg-border" />
+          <div className="mx-2 hidden h-10 w-px bg-border sm:block" />
           <div className="flex flex-col">
             <span className="text-base font-medium text-muted-foreground">
               Market Volume
@@ -120,12 +120,12 @@ export default function MarketDetailPage({
           </div>
         </div>
 
-        {/* Grid: 8 + 4 */}
-        <div className="grid gap-10 grid-cols-12">
-          {/* ═══ Left Column ═══ */}
-          <div className="flex flex-col gap-8 col-span-8">
+        {/* Grid: 8 + 4 → stacked on mobile */}
+        <div className="grid grid-cols-1 gap-10 md:grid-cols-12">
+          {/* Left Column */}
+          <div className="flex flex-col gap-8 md:col-span-8">
             {/* Chart card */}
-            <div className="overflow-hidden rounded-xl border border-border bg-card/30 p-8">
+            <div className="overflow-hidden rounded-xl border border-border bg-card/30 p-4 md:p-8">
               <div className="mb-8 flex items-center justify-between">
                 <h3 className="flex items-center gap-2 font-semibold">
                   <Activity className="h-4 w-4 text-primary" />
@@ -143,13 +143,13 @@ export default function MarketDetailPage({
                   ))}
                 </div>
               </div>
-              <div className="h-[320px]">
+              <div className="h-[220px] md:h-[320px]">
                 <OddsChart data={history ?? []} />
               </div>
             </div>
 
             {/* Info cards */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div className="rounded-xl border border-border bg-card/30 p-6">
                 <div className="mb-4 flex items-center gap-3">
                   <div className="rounded-lg bg-primary/10 p-2">
@@ -211,8 +211,8 @@ export default function MarketDetailPage({
             )}
           </div>
 
-          {/* ═══ Right Column: Smart Trade ═══ */}
-          <div className="col-span-4">
+          {/* Right Column: Smart Trade */}
+          <div className="md:col-span-4">
             <TradingPanel marketId={marketId} odds={odds} />
           </div>
         </div>

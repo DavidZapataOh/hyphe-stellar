@@ -51,7 +51,7 @@ export default function MyPredictionsPage() {
   if (!connected) {
     return (
       <>
-        <div className="mx-auto max-w-[1400px] px-8 pb-8">
+        <div className="mx-auto max-w-[1400px] px-4 pb-8 md:px-8">
           <PageHeader />
           <EmptyState
             icon={Briefcase}
@@ -66,10 +66,10 @@ export default function MyPredictionsPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-[1400px] px-8 py-10">
+      <div className="mx-auto max-w-[1400px] px-4 py-10 md:px-8">
         <Skeleton className="mb-3 h-4 w-24" />
         <Skeleton className="mb-10 h-8 w-48" />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
           <Skeleton className="h-36 rounded-2xl" />
           <Skeleton className="h-36 rounded-2xl" />
           <Skeleton className="h-36 rounded-2xl" />
@@ -80,7 +80,7 @@ export default function MyPredictionsPage() {
 
   return (
     <>
-    <div className="mx-auto max-w-[1000px] px-8 pb-8">
+    <div className="mx-auto max-w-[1000px] px-4 pb-8 md:px-8">
       <PageHeader />
 
       {groupedPositions.length === 0 ? (
@@ -100,7 +100,7 @@ export default function MyPredictionsPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             Your Positions
           </p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {groupedPositions.map((group) => (
               <PositionCard
                 key={group.marketId}
@@ -123,7 +123,7 @@ export default function MyPredictionsPage() {
 
 function PageHeader() {
   return (
-    <div className="py-14">
+    <div className="py-8 md:py-14">
       <h1 className="text-3xl font-bold tracking-tight">
         My Predictions
       </h1>

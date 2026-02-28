@@ -52,7 +52,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "w-64 shrink-0 border-r border-border/50 bg-sidebar",
+        "hidden w-64 shrink-0 border-r border-border/50 bg-sidebar lg:flex lg:flex-col",
         className,
       )}
     >

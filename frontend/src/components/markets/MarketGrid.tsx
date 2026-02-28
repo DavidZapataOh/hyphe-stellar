@@ -26,7 +26,7 @@ export function MarketGrid({
 
   if (loading) {
     return (
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <SkeletonCard key={i} delay={i * 0.1} />
         ))}
@@ -47,7 +47,7 @@ export function MarketGrid({
   }
 
   return (
-    <div ref={groupRef} className="grid grid-cols-3 gap-6">
+    <div ref={groupRef} className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
       {markets.map((market, i) => (
         <div
           key={market.id}

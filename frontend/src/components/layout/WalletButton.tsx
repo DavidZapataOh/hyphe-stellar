@@ -1,6 +1,6 @@
 "use client";
 
-import { Wallet, Copy, LogOut, ChevronDown } from "lucide-react";
+import { Wallet, Copy, LogOut, ChevronDown, Droplets, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,12 +10,28 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useWallet } from "@/hooks/useWallet";
 import { useUsdcBalance } from "@/hooks/useUsdcBalance";
+import { useFaucet } from "@/hooks/useFaucet";
 import { truncateAddress, formatUsdc } from "@/lib/utils/format";
 import { toast } from "sonner";
 
 export function WalletButton() {
   const { connected, address, connecting, connect, disconnect } = useWallet();
   const { data: balance } = useUsdcBalance();
+  const { requestFaucet, isPending: faucetPending } = useFaucet();
+
+  const showFaucet = connected && address && (balance === undefined || balance === "0");
+
+  const handleFaucet = async () => {
+    if (!address) return;
+    toast.info("Requesting 50 USDC...");
+    try {
+      await requestFaucet(address);
+      toast.success("50 USDC sent to your wallet!");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Faucet request failed";
+      toast.error(message);
+    }
+  };
 
   if (!connected || !address) {
     return (
@@ -54,6 +70,20 @@ export function WalletButton() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
+        {showFaucet && (
+          <DropdownMenuItem
+            onClick={handleFaucet}
+            disabled={faucetPending}
+            className="gap-2 text-sm"
+          >
+            {faucetPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Droplets className="h-3.5 w-3.5" />
+            )}
+            {faucetPending ? "Sending..." : "Get 50 USDC"}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           onClick={() => {
             navigator.clipboard.writeText(address);
